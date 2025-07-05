@@ -6,3 +6,6 @@ __pycache__/
 .env
 yolov8n.pt
 yolov8n.py
+
+Yolov8.py
+yolov8n.pt
