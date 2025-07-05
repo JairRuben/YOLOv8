@@ -4,4 +4,5 @@ __pycache__/
 *.pyd
 *.DS_Store
 .env
-Yolov8.py
+yolov8n.pt
+yolov8n.py
