@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YOLOv8 - Detección en Tiempo Real</title>
+    <style>
+      :root {
+        --main-color: #00ff88;
+        --bg-light: #ffffff;
+        --bg-dark: #0e0e0e;
+        --text-light: #111;
+        --text-dark: #fff;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: var(--bg-dark);
+        color: var(--text-dark);
+        transition: background 0.3s, color 0.3s;
+      }
+
+      h2 {
+        margin-top: 20px;
+        font-size: 1.5em;
+        color: var(--main-color);
+        text-shadow: 0 0 10px var(--main-color);
+      }
+
+      video,
+      img {
+        width: 92%;
+        max-width: 720px;
+        border-radius: 12px;
+        margin-top: 20px;
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        border: 3px solid var(--main-color);
+      }
+
+      .spinner {
+        margin-top: 20px;
+        border: 5px solid transparent;
+        border-top: 5px solid var(--main-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      #status {
+        margin-top: 10px;
+        font-size: 0.9em;
+        color: #aaa;
+      }
+
+      @media (max-width: 480px) {
+        h2 {
+          font-size: 1.2em;
+        }
+      }
+
+      /* Splash screen */
+      #splash {
+        position: fixed;
+        z-index: 9999;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-dark);
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        animation: fadeOut 1s ease-in-out forwards;
+        animation-delay: 2s;
+      }
+
+      #splash h1 {
+        font-size: 2em;
+        color: var(--main-color);
+        text-shadow: 0 0 15px var(--main-color);
+      }
+
+      #splash p {
+        font-size: 1em;
+        opacity: 0.7;
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          visibility: hidden;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Splash screen -->
+    <div id="splash">
+      <h1>🧠 YOLOv8 Web</h1>
+      <p>Detectando a la persona más alta...</p>
+      <div class="spinner"></div>
+    </div>
+
+    <h2>Detección Automática - Persona Más Alta</h2>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display: none"></canvas>
+
+    <div id="status">Cámara activada - detectando...</div>
+    <div class="spinner" id="spinner"></div>
+    <div id="result"></div>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const result = document.getElementById("result");
+      const spinner = document.getElementById("spinner");
+      const status = document.getElementById("status");
+
+      // Activar modo oscuro dinámico (según la hora)
+      const hour = new Date().getHours();
+      if (hour >= 6 && hour <= 18) {
+        document.body.style.setProperty("--bg-dark", "#ffffff");
+        document.body.style.setProperty("--text-dark", "#111");
+        document.body.style.setProperty("--main-color", "#0077ff");
+      }
+
+      // Activar cámara
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        video.srcObject = stream;
+      });
+
+      function sendFrame() {
+        const ctx = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        canvas.toBlob((blob) => {
+          const form = new FormData();
+          form.append("image", blob, "frame.jpg");
+
+          fetch("/detect", {
+            method: "POST",
+            body: form,
+          })
+            .then((res) => res.blob())
+            .then((blob) => {
+              const url = URL.createObjectURL(blob);
+              result.innerHTML = `<img src="${url}" alt="Resultado de la detección">`;
+            })
+            .catch(() => {
+              status.innerText = "⚠️ Error en la detección.";
+            });
+        }, "image/jpeg");
+      }
+
+      // Loop de detección automática
+      setInterval(sendFrame, 500);
+    </script>
+  </body>
+</html>
